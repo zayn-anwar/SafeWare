@@ -10,7 +10,7 @@ import threading
 
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout,
-    QLabel, QPushButton, QTabWidget, QSpinBox, QHBoxLayout,
+    QLabel, QPushButton, QTabWidget, QSpinBox, QHBoxLayout, QTableWidget, QTableWidgetItem, QCheckBox
 )
 
 class SafeWareWindow(QWidget):
@@ -53,24 +53,32 @@ class SafeWareWindow(QWidget):
         self.button.setFixedHeight(40)
         self.button.setFixedWidth(200)
 
+        self.show_closed_checkbox = QCheckBox("Show closed ports")
+        tab1_layout.addWidget(self.show_closed_checkbox)
+
         tab1_layout.addWidget(self.label)
         tab1_layout.addWidget(self.button)
-        tab1_layout.addStretch()  # Push content to the top
+        tab1_layout.addStretch()
+
+        self.portTable = QTableWidget()
+        self.portTable.setColumnCount(3)
+        self.portTable.setHorizontalHeaderLabels(["Port", "Status", "Service"])
+
+        tab1_layout.addWidget(self.portTable)
 
         tab1.setLayout(tab1_layout)
         tabs.addTab(tab1, "Port Scanner")
 
-        # --- Tab 2: Empty for now (or you can add anything) ---
         tab2 = QWidget()
         tab2_layout = QVBoxLayout()
         tab2_layout.addWidget(QLabel("This is tab 2 content"))
         tab2.setLayout(tab2_layout)
         tabs.addTab(tab2, "Other Tab")
 
-        # Connect button to threaded scan
         self.button.clicked.connect(self.run_scan_threaded)
 
     def run_scan(self, start=None, end=None):
+        self.portTable.setRowCount(0)
         if start is None and end is None:
             start = self.start_port.value()
             end = self.end_port.value()
@@ -83,6 +91,17 @@ class SafeWareWindow(QWidget):
             sock.close()
             if result == 0:
                 ports.append(port)
+                row = self.portTable.rowCount()
+                self.portTable.insertRow(row)
+                self.portTable.setItem(row, 0, QTableWidgetItem(str(port)))
+                self.portTable.setItem(row, 1, QTableWidgetItem("Open ✅"))
+            else:
+                if self.show_closed_checkbox.isChecked():
+                    row= self.portTable.rowCount()
+                    self.portTable.insertRow(row)
+                    self.portTable.setItem(row, 0, QTableWidgetItem(str(port)))
+                    self.portTable.setItem(row, 1, QTableWidgetItem("Closed"))
+
         if ports:
             self.label.setText(f"Open port: {ports[0]}")
         else:
