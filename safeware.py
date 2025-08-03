@@ -7,10 +7,14 @@
 import sys
 import socket
 import threading
+import subprocess
+import platform
+import ipaddress
+
 
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout,
-    QLabel, QPushButton, QTabWidget, QSpinBox, QHBoxLayout, QTableWidget, QTableWidgetItem, QCheckBox
+    QLabel, QPushButton, QTabWidget, QSpinBox, QHBoxLayout, QTableWidget, QTableWidgetItem, QCheckBox, QLineEdit
 )
 
 class SafeWareWindow(QWidget):
@@ -111,9 +115,28 @@ class SafeWareWindow(QWidget):
 
         tab2 = QWidget()
         tab2_layout = QVBoxLayout()
-        tab2_layout.addWidget(QLabel("This is tab 2 content"))
+
+        self.subnet_label = QLabel("Enter a subnet to scan")
+        tab2_layout.addWidget(self.subnet_label)
+
+        self.subnet_input = QLineEdit()
+        self.subnet_input.setPlaceholderText("Enter Subnet (eg 192.168.1.0/24)")
+        tab2_layout.addWidget(self.subnet_input)
+
+        self.show_down_checkbox = QCheckBox("Show down hosts")
+        tab2_layout.addWidget(self.show_down_checkbox)
+
+        self.subnet_submit = QPushButton("Submit")
+        self.subnet_submit.clicked.connect(self.discovery_request_threaded)
+        tab2_layout.addWidget(self.subnet_submit)
+
+        self.discovery_result = QTableWidget()
+        self.discovery_result.setColumnCount(2)
+        self.discovery_result.setHorizontalHeaderLabels(["IP Address", "Status"])
+        tab2_layout.addWidget(self.discovery_result)
+
         tab2.setLayout(tab2_layout)
-        tabs.addTab(tab2, "Other Tab")
+        tabs.addTab(tab2, "Find Alive Hosts")
 
         self.button.clicked.connect(self.run_scan_threaded)
 
@@ -127,7 +150,7 @@ class SafeWareWindow(QWidget):
         for port in range(start, end + 1):
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(0.5)
-            result = sock.connect_ex(("192.168.1.11", port))
+            result = sock.connect_ex(("INSERT IP ADDRESS HERE", port))
             sock.close()
             if result == 0:
                 ports.append(port)
@@ -155,6 +178,50 @@ class SafeWareWindow(QWidget):
         thread = threading.Thread(target=self.run_scan)
         thread.start()
 
+    def ip_scan(self, ip):
+        param = "-n" if platform.system().lower() == "windows" else "-c"
+        command = ["ping", param, "1", str(ip)]
+        try:
+            subprocess.check_call(command, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+            return True
+        except subprocess.CalledProcessError:
+            return False
+        except FileNotFoundError:
+            print("Ping command not found! Is it available on your system?")
+            return False
+
+    def discovery_request(self):
+        subnet_str = self.subnet_input.text().strip()
+        if not subnet_str:
+            self.subnet_label.setText("No subnet to scan")
+            return
+
+        try:
+            subnet = ipaddress.ip_network(subnet_str, strict=False)
+        except ValueError:
+            self.subnet_label.setText("Invalid subnet format")
+            return
+
+        self.subnet_input.setText("Scanning subnet...")
+        self.discovery_result.setRowCount(0)
+
+        for ip in subnet.hosts():
+            alive = self.ip_scan(ip)
+            if alive:
+                row = self.discovery_result.rowCount()
+                self.discovery_result.insertRow(row)
+                self.discovery_result.setItem(row, 0, QTableWidgetItem(str(ip)))
+                self.discovery_result.setItem(row, 1, QTableWidgetItem("Alive"))
+            else:
+                if self.show_down_checkbox.isChecked():
+                    row = self.discovery_result.rowCount()
+                    self.discovery_result.insertRow(row)
+                    self.discovery_result.setItem(row, 0, QTableWidgetItem(str(ip)))
+                    self.discovery_result.setItem(row, 1, QTableWidgetItem("Down"))
+
+    def discovery_request_threaded(self):
+        thread = threading.Thread(target=self.discovery_request)
+        thread.start()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
