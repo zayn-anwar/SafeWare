@@ -11,9 +11,11 @@ import subprocess
 import platform
 import ipaddress
 import time
+import ftplib
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout,
-    QLabel, QPushButton, QTabWidget, QSpinBox, QHBoxLayout, QTableWidget, QTableWidgetItem, QCheckBox, QLineEdit
+    QLabel, QPushButton, QTabWidget, QSpinBox, QHBoxLayout, QTableWidget, QTableWidgetItem, QCheckBox, QLineEdit,
+    QProgressBar
 )
 from PySide6.QtGui import QIcon
 
@@ -104,8 +106,14 @@ class SafeWareWindow(QWidget):
         self.show_closed_checkbox = QCheckBox("Show closed ports")
         tab1_layout.addWidget(self.show_closed_checkbox)
 
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setMinimum(0)
+        self.progress_bar.setMaximum(100)
+        self.progress_bar.setValue(0)
+
         tab1_layout.addWidget(self.label)
         tab1_layout.addWidget(self.button)
+        tab1_layout.addWidget(self.progress_bar)
         tab1_layout.addStretch()
 
         self.portTable = QTableWidget()
@@ -183,13 +191,18 @@ class SafeWareWindow(QWidget):
         if start is None and end is None:
             start = self.start_port.value()
             end = self.end_port.value()
+        total_ports = end - start + 1
+        progress_count = 0
 
         self.label.setText("Scanning for open ports...")
 
         for port in range(start, end + 1):
+            progress_count += 1
+            progress_percent = int((progress_count / total_ports) * 100)
+            self.progress_bar.setValue(progress_percent)
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(0.5)
-            raw_result = sock.connect_ex(("INSERT IP ADDRESS HERE", port))
+            raw_result = sock.connect_ex(("INSERT IP ADDRESS", port))
             sock.close()
             if raw_result == 0:
                 row = self.portTable.rowCount()
@@ -268,7 +281,7 @@ class SafeWareWindow(QWidget):
                 for port in range(start, end + 1):
                     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     sock.settimeout(0.5)
-                    raw_result = sock.connect_ex(("192.168.1.8", port))
+                    raw_result = sock.connect_ex(("INSERT IP ADDRESS", port))
                     sock.close()
                     status_text = "Open ✅" if raw_result == 0 else "Closed"
                     row = self.status_table.rowCount()
