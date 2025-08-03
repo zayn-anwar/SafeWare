@@ -10,6 +10,7 @@ import threading
 import subprocess
 import platform
 import ipaddress
+import time
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout,
     QLabel, QPushButton, QTabWidget, QSpinBox, QHBoxLayout, QTableWidget, QTableWidgetItem, QCheckBox, QLineEdit
@@ -57,6 +58,8 @@ class SafeWareWindow(QWidget):
             1023: "Reserved",
             1024: "Reserved",
         }
+
+        self.port_monitoring = {}
 
         super().__init__()
 
@@ -139,41 +142,73 @@ class SafeWareWindow(QWidget):
         tab2.setLayout(tab2_layout)
         tabs.addTab(tab2, "Find Alive Hosts")
 
+        tab3 = QWidget()
+        tab3_layout = QVBoxLayout()
+
+        self.live_port_monitoring = QLabel("Monitor Port Status Live")
+        tab3_layout.addWidget(self.live_port_monitoring)
+
+        monitor_port_layout = QHBoxLayout()
+        tab3_layout.addLayout(monitor_port_layout)
+
+        self.start_monitor_port = QSpinBox()
+        self.start_monitor_port.setRange(1, 65535)
+        self.start_monitor_port.setValue(1)
+        self.start_monitor_port.setPrefix("Start Port: ")
+
+        self.end_monitor_port = QSpinBox()
+        self.end_monitor_port.setRange(1, 65535)
+        self.end_monitor_port.setValue(100)
+        self.end_monitor_port.setPrefix("End Port: ")
+
+        monitor_port_layout.addWidget(self.start_monitor_port)
+        monitor_port_layout.addWidget(self.end_monitor_port)
+
+        monitor_button = QPushButton("Monitor")
+        monitor_button.clicked.connect(self.monitor_ports)
+        tab3_layout.addWidget(monitor_button)
+
+        self.status_table = QTableWidget()
+        self.status_table.setColumnCount(3)
+        self.status_table.setHorizontalHeaderLabels(["Port", "Status", "Service"])
+        tab3_layout.addWidget(self.status_table)
+
+        tab3.setLayout(tab3_layout)
+        tabs.addTab(tab3, "Live Port Monitoring")
+
         self.button.clicked.connect(self.run_scan_threaded)
 
-    def run_scan(self, start=None, end=None):
+    def run_scan(self, start=None, end=None, on_status_check=None):
         self.portTable.setRowCount(0)
         if start is None and end is None:
             start = self.start_port.value()
             end = self.end_port.value()
-        ports = []
+
         self.label.setText("Scanning for open ports...")
+
         for port in range(start, end + 1):
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(0.5)
-            result = sock.connect_ex(("INSERT IP ADDRESS HERE", port))
+            raw_result = sock.connect_ex(("INSERT IP ADDRESS HERE", port))
             sock.close()
-            if result == 0:
-                ports.append(port)
+            if raw_result == 0:
                 row = self.portTable.rowCount()
                 self.portTable.insertRow(row)
                 self.portTable.setItem(row, 0, QTableWidgetItem(str(port)))
                 self.portTable.setItem(row, 1, QTableWidgetItem("Open ✅"))
+
                 if port in self.common_ports:
                     self.portTable.setItem(row, 2, QTableWidgetItem(str(self.common_ports[port])))
+
             else:
                 if self.show_closed_checkbox.isChecked():
-                    row= self.portTable.rowCount()
+                    row = self.portTable.rowCount()
                     self.portTable.insertRow(row)
                     self.portTable.setItem(row, 0, QTableWidgetItem(str(port)))
                     self.portTable.setItem(row, 1, QTableWidgetItem("Closed"))
                     if port in self.common_ports:
                         self.portTable.setItem(row, 2, QTableWidgetItem(str(self.common_ports[port])))
-
-        if ports:
-            self.label.setText(f"Open port: {ports[0]}")
-        else:
-            self.label.setText("No open ports found")
+        self.label.setText("Click to start scan")
 
     def run_scan_threaded(self):
         thread = threading.Thread(target=self.run_scan)
@@ -222,6 +257,30 @@ class SafeWareWindow(QWidget):
 
     def discovery_request_threaded(self):
         thread = threading.Thread(target=self.discovery_request)
+        thread.start()
+
+    def monitor_ports(self):
+        def monitor_loop():
+            start = self.start_monitor_port.value()
+            end = self.end_monitor_port.value()
+            while True:
+                self.status_table.setRowCount(0)
+                for port in range(start, end + 1):
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    sock.settimeout(0.5)
+                    raw_result = sock.connect_ex(("192.168.1.8", port))
+                    sock.close()
+                    status_text = "Open ✅" if raw_result == 0 else "Closed"
+                    row = self.status_table.rowCount()
+                    self.status_table.insertRow(row)
+                    self.status_table.setItem(row, 0, QTableWidgetItem(str(port)))
+                    self.status_table.setItem(row, 1, QTableWidgetItem(status_text))
+                    if port in self.common_ports:
+                        self.status_table.setItem(row, 2, QTableWidgetItem(str(self.common_ports[port])))
+                    else:
+                        self.status_table.setItem(row, 2, QTableWidgetItem(""))
+                time.sleep(3)
+        thread = threading.Thread(target=monitor_loop, daemon=True)
         thread.start()
 
 if __name__ == "__main__":
