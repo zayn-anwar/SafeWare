@@ -10,12 +10,11 @@ import threading
 import subprocess
 import platform
 import ipaddress
-
-
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout,
     QLabel, QPushButton, QTabWidget, QSpinBox, QHBoxLayout, QTableWidget, QTableWidgetItem, QCheckBox, QLineEdit
 )
+from PySide6.QtGui import QIcon
 
 class SafeWareWindow(QWidget):
     def __init__(self):
@@ -60,6 +59,8 @@ class SafeWareWindow(QWidget):
         }
 
         super().__init__()
+
+        self.setWindowIcon(QIcon("shieldico.ico"))
 
         self.setWindowTitle("SafeWare by ZCI")
         self.resize(400, 300)
