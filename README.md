@@ -1,7 +1,7 @@
 ## SafeWare
 
 SafeWare is an underdevelopment security application designed to host a variety of useful tools that IT nerds, cybersecurity hobbyists and advanced computer users will find useful. 
-SafeWare is made using the PySide6 development library in Python.
+SafeWare is made using the PySide6 development library in Python. I'm mainly doing port-related tools for now, hence the name "PortWatch". Also, the code is extremely long because I have a few issues in my code which can only be solved by having more code than usual. I'm working on it though.
 
 ## NOTE:
 
