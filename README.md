@@ -7,3 +7,5 @@ PortView is made using the PySide6 development library in Python. I'm mainly doi
 
 When downloading, replace the "INSERT YOUR IP ADDRESS" field in the run_scan function with your actual ip address. 
 Also when downloading, download the .ico file along with the main script and place them both in the same folder.
+
+ ## If you DO NOT have Python installed on your computer, please download from this link: https://drive.google.com/file/d/1xAepEBppuMX70sgzdruS5LuJonnG-nG8/view?usp=sharing
