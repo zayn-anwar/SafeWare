@@ -1,7 +1,7 @@
-# PLEASE INSERT YOUR IP ADDRESS 
-# WHEREVER NEEDED AS THE APP MIGHT 
-# NOT FUNCTION AS INTENDED WITHOUT 
-# DOING SO 
+# PLEASE INSERT YOUR IP ADDRESS
+# WHEREVER NEEDED AS THE APP MIGHT
+# NOT FUNCTION AS INTENDED WITHOUT
+# DOING SO
 # Created by Zayn Coding Incorporated
 
 import sys
@@ -15,6 +15,46 @@ from PySide6.QtWidgets import (
 
 class SafeWareWindow(QWidget):
     def __init__(self):
+
+        self.common_ports = {
+            20: "FTP Data",
+            21: "FTP Control",
+            22: "SSH",
+            23: "Telnet",
+            25: "SMTP",
+            53: "DNS",
+            67: "DHCP (Server)",
+            68: "DHCP (Client)",
+            69: "TFTP",
+            80: "HTTP",
+            110: "POP3",
+            111: "RPCbind / portmapper",
+            119: "NNTP",
+            123: "NTP",
+            135: "Microsoft RPC",
+            137: "NetBIOS Name Service",
+            138: "NetBIOS Datagram Service",
+            139: "NetBIOS Session Service",
+            143: "IMAP",
+            161: "SNMP",
+            162: "SNMP Trap",
+            179: "BGP",
+            194: "IRC",
+            389: "LDAP",
+            443: "HTTPS",
+            445: "Microsoft-DS (SMB over IP)",
+            465: "SMTPS",
+            514: "Syslog",
+            515: "LPD (Line Printer Daemon)",
+            520: "RIP",
+            587: "SMTP (submission)",
+            631: "IPP (Internet Printing Protocol)",
+            993: "IMAPS",
+            995: "POP3S",
+            1023: "Reserved",
+            1024: "Reserved",
+        }
+
         super().__init__()
 
         self.setWindowTitle("SafeWare by ZCI")
@@ -95,12 +135,16 @@ class SafeWareWindow(QWidget):
                 self.portTable.insertRow(row)
                 self.portTable.setItem(row, 0, QTableWidgetItem(str(port)))
                 self.portTable.setItem(row, 1, QTableWidgetItem("Open ✅"))
+                if port in self.common_ports:
+                    self.portTable.setItem(row, 2, QTableWidgetItem(str(self.common_ports[port])))
             else:
                 if self.show_closed_checkbox.isChecked():
                     row= self.portTable.rowCount()
                     self.portTable.insertRow(row)
                     self.portTable.setItem(row, 0, QTableWidgetItem(str(port)))
                     self.portTable.setItem(row, 1, QTableWidgetItem("Closed"))
+                    if port in self.common_ports:
+                        self.portTable.setItem(row, 2, QTableWidgetItem(str(self.common_ports[port])))
 
         if ports:
             self.label.setText(f"Open port: {ports[0]}")
